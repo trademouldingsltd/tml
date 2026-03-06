@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Env (contains keys – do not commit)
+.env
+.env.local
+.env.*.local
+
+# Build
+dist/
+
+# Supabase local
+supabase/.temp/
+
+# Editor / OS
+.DS_Store
+*.log

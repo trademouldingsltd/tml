@@ -137,6 +137,47 @@ export default function AdminCustomerDetail() {
           </div>
         </div>
         <div className="card admin-card">
+          <h2>Statement & balance</h2>
+          <div className="admin-statement-summary">
+            <p><strong>Balance outstanding</strong> £{Number(profile.balance_outstanding).toFixed(2)}</p>
+            {profile.payment_terms && <p><strong>Payment terms</strong> {profile.payment_terms}</p>}
+          </div>
+          {orders.filter((o) => ['invoiced', 'paid'].includes(o.status)).length === 0 ? (
+            <p className="admin-muted">No invoiced or paid orders yet.</p>
+          ) : (
+            <div className="admin-table-wrap admin-table-wrap--compact">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Reference</th>
+                    <th>Invoice</th>
+                    <th>Status</th>
+                    <th>Total inc VAT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders
+                    .filter((o) => ['invoiced', 'paid'].includes(o.status))
+                    .slice(0, 15)
+                    .map((o) => (
+                      <tr key={o.id}>
+                        <td>{new Date(o.created_at).toLocaleDateString()}</td>
+                        <td><Link to={`/admin/orders/${o.id}`}>{o.reference ?? o.id.slice(0, 8)}</Link></td>
+                        <td>{o.invoice_number ?? '—'}</td>
+                        <td>{o.status}</td>
+                        <td>£{Number(o.total_inc_vat).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <p className="admin-muted" style={{ marginTop: '0.5rem' }}>
+            <Link to={`/admin/orders?customer=${userId}`}>View all orders for this customer →</Link>
+          </p>
+        </div>
+        <div className="card admin-card">
           <h2>Orders ({orders.length})</h2>
           {orders.length === 0 ? (
             <p className="admin-muted">No orders yet.</p>

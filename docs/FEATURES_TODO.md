@@ -20,7 +20,7 @@ Based on B2B order management, kitchen/trade supplier portals, and OMS best prac
 ### Order management & workflow
 - [x] **Invoice number** – unique ref when order moves to invoiced (migration + auto-set)
 - [x] **Order processing queue** – view “Placed” orders needing processing (mark invoiced, set delivery)
-- [ ] **Bulk status update** – select multiple orders, set status or assign courier
+- [x] **Bulk status update** – select multiple orders, set status (table view: checkboxes + Mark as Invoiced / Set status)
 - [x] **Status transition rules** – “Mark as invoiced” sets processed_at, generates invoice number (trigger)
 
 ### Delivery & courier
@@ -32,7 +32,7 @@ Based on B2B order management, kitchen/trade supplier portals, and OMS best prac
 ### Billing & invoicing
 - [x] **Payment terms** – on customer (e.g. Net 7, Net 30); show on order & account
 - [x] **Invoice PDF** – print invoice view (customer + admin); browser Print
-- [ ] **Statement / balance** – already have balance_outstanding on profile; statement view (invoices + payments)
+- [x] **Statement / balance** – balance + invoiced/paid orders table on customer detail
 - [ ] **Credit memo / returns** – optional RMA or credit note flow
 
 ### Notifications & workflow

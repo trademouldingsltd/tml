@@ -53,6 +53,43 @@ export default function AdminOrders() {
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null)
   const [viewType, setViewType] = useState<OrdersViewType>('table')
   const [sortBy, setSortBy] = useState<OrdersSort>('date_desc')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkStatusValue, setBulkStatusValue] = useState<OrderRow['status'] | ''>('')
+  const [bulkUpdating, setBulkUpdating] = useState(false)
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === sortedOrders.length) setSelectedIds(new Set())
+    else setSelectedIds(new Set(sortedOrders.map((o) => o.id)))
+  }
+
+  async function bulkUpdateStatus(newStatus: OrderRow['status']) {
+    const ids = Array.from(selectedIds)
+    if (ids.length === 0) return
+    setBulkUpdating(true)
+    const updates: Partial<OrderRow> = {
+      status: newStatus,
+      updated_at: new Date().toISOString(),
+    }
+    if (newStatus === 'placed' || newStatus === 'invoiced') updates.processed_at = new Date().toISOString()
+    if (newStatus === 'cancelled') {
+      updates.payment_status = null
+      updates.payment_intent_id = null
+    }
+    await supabase.from('orders').update(updates).in('id', ids)
+    setOrders((prev) => prev.map((o) => (ids.includes(o.id) ? { ...o, ...updates } : o)))
+    setSelectedIds(new Set())
+    setBulkStatusValue('')
+    setBulkUpdating(false)
+  }
 
   async function updateOrderStatus(orderId: string, newStatus: OrderRow['status']) {
     setUpdatingOrderId(orderId)
@@ -238,11 +275,49 @@ export default function AdminOrders() {
       ) : (
         <div className="card admin-card">
           <p className="admin-muted" style={{ marginBottom: '0.75rem' }}>{sortedOrders.length} order(s)</p>
+          {selectedIds.size > 0 && viewType === 'table' && (
+            <div className="admin-bulk-actions no-print">
+              <span className="admin-bulk-actions-count">{selectedIds.size} selected</span>
+              <button
+                type="button"
+                className="btn btn-small"
+                onClick={() => bulkUpdateStatus('invoiced')}
+                disabled={bulkUpdating}
+              >
+                {bulkUpdating ? 'Updating…' : 'Mark as Invoiced'}
+              </button>
+              <select
+                value={bulkStatusValue}
+                onChange={(e) => {
+                  const v = e.target.value as OrderRow['status'] | ''
+                  if (v) bulkUpdateStatus(v)
+                }}
+                disabled={bulkUpdating}
+                className="admin-filter-input"
+              >
+                <option value="">Set status to…</option>
+                {Object.entries(STATUS_LABELS).map(([k, v]) => (
+                  <option key={k} value={k}>{v}</option>
+                ))}
+              </select>
+              <button type="button" className="btn btn-outline btn-small" onClick={() => setSelectedIds(new Set())}>
+                Clear selection
+              </button>
+            </div>
+          )}
           {viewType === 'table' && (
           <div className={`table-wrap admin-table-wrap admin-table-wrap--${tableDensity}`}>
             <table className="admin-table orders-table">
               <thead>
                 <tr>
+                  <th className="admin-orders-th-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={sortedOrders.length > 0 && selectedIds.size === sortedOrders.length}
+                      onChange={toggleSelectAll}
+                      aria-label="Select all orders"
+                    />
+                  </th>
                   <th>Date</th>
                   <th>Customer</th>
                   <th>Reference</th>
@@ -255,7 +330,7 @@ export default function AdminOrders() {
               <tbody>
                 {sortedOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="admin-table-empty">
+                    <td colSpan={8} className="admin-table-empty">
                       No orders match the filters. Try changing the status or date range, or{' '}
                       <Link to="/admin/create-order">create an order</Link>.
                     </td>
@@ -263,6 +338,14 @@ export default function AdminOrders() {
                 ) : (
                   sortedOrders.map((o) => (
                     <tr key={o.id}>
+                      <td className="admin-orders-td-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(o.id)}
+                          onChange={() => toggleSelect(o.id)}
+                          aria-label={`Select order ${o.reference ?? o.id}`}
+                        />
+                      </td>
                       <td>{formatAdminDate(adminUi, o.created_at)}</td>
                       <td>
                         <Link to={`/admin/customers/${o.user_id}`} className="admin-table-link">
